@@ -1,22 +1,52 @@
+
+
 services:
-
-  frontend:
-    build: ./frontend
-    ports:
-      - "3000:3000"
-    depends_on:
-      - backend
-
-  backend:
-    build: ./backend
-    ports:
-      - "5000:5000"
-    depends_on:
-      - mongodb
+  # 1. PostgreSQL Database
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: postgres_container
     environment:
-      - MONGO_URI=mongodb://mongodb:27017/hospitalDB
-
-  mongodb:
-    image: mongo
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: your_password_here
+      POSTGRES_DB: postgres
     ports:
-      - "27017:27017"
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - medicare-network
+
+  # 2. NestJS Backend Application
+  nestjs_backend:
+    build: ./backend-nest
+    container_name: nestjs_container
+    ports:
+      - "3001:3001"
+    environment:
+      - DB_HOST=postgres_db
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=your_password_here
+      - DB_DATABASE=postgres
+    depends_on:
+      - postgres_db
+    networks:
+      - medicare-network
+
+  # 3. React Frontend Application
+  react_frontend:
+    build: ./frontend
+    container_name: react_container
+    ports:
+      - "3000:80"
+    depends_on:
+      - nestjs_backend
+    networks:
+      - medicare-network
+
+networks:
+  medicare-network:
+    driver: bridge
+
+volumes:
+  pgdata:
